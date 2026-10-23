@@ -2,13 +2,13 @@
 
 # tenten
 
-A headless pixel-art and animation tool for coding agents. Sprites are indexed (a palette, index 0 transparent) with layers, frames, tags and slices. An MCP server and a CLI are the only interfaces; there is no editing GUI. Every edit returns the frame as a text grid so the model sees what it drew.
+A headless, scriptable pixel-art and animation tool. Draw sprites as text grids and ops over an MCP server, a CLI or a TypeScript API, and export sheets that Phaser, Pixi and debuff load. Sprites are indexed (a palette, index 0 transparent) with layers, frames, tags and slices. There is no editing GUI. Every edit returns the frame as a text grid, so a coding agent can drive it without a screen.
 
 Inspired by Aseprite, not a clone of it. The `.tt` file is JSON with cels stored as text grids, so it reads with `cat` and diffs in git. Exports write PNG sheets and Aseprite-style JSON that Phaser's `load.aseprite` and Pixi's spritesheet parser accept, and the `name@WxH.png` strips debuff's asset compiler reads.
 
 Part of [debuff](https://github.com/debuffjp/debuff), the toolkit for 2D browser games. Projects made with `npm create debuff` list tenten in their `.mcp.json`, and the `tenten()` plugin in `@debuffjp/cli` turns `.tt` files in `assets/` into sprite sheets, fetching tenten with npx when it is not installed.
 
-## Use it from an agent
+## MCP server
 
 ```json
 { "mcpServers": { "tenten": { "command": "npx", "args": ["-y", "-p", "@debuffjp/tenten", "tenten-mcp"] } } }
