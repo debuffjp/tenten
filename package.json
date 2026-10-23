@@ -1,0 +1,33 @@
+{
+  "name": "tenten",
+  "version": "0.0.1",
+  "description": "tenten: a headless pixel-art and animation tool for coding agents. Indexed sprites, frames, tags and slices over an MCP server and a CLI, with text renders in every result. Imports and exports .aseprite.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "tenten": "bin/tenten.js",
+    "tenten-mcp": "bin/tenten-mcp.js"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test tests/*.test.ts",
+    "check": "npm run typecheck && npm test",
+    "mcp": "node bin/tenten-mcp.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "fast-png": "8.0.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.0.0",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "files": ["bin", "src"]
+}

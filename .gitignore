@@ -1,0 +1,4 @@
+node_modules/
+.tenten/
+*.log
+tmp/
