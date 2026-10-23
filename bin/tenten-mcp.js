@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-import "../src/mcp.ts";
+import "../dist/mcp.js";
