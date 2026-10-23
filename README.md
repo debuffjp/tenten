@@ -1,3 +1,5 @@
+<img src="docs/brand/icon.svg" alt="tenten" width="96">
+
 # tenten
 
 A headless pixel-art and animation tool for coding agents. Sprites are indexed (a palette, index 0 transparent) with layers, frames, tags and slices. An MCP server and a CLI are the only interfaces; there is no editing GUI. Every edit returns the frame as a text grid so the model sees what it drew.
