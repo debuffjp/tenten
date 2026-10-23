@@ -73,5 +73,7 @@ export function flatten(d: Doc, frame: Frame): Uint8Array {
 }
 
 export class TentenError extends Error {
-  constructor(public code: string, message: string, public hint?: string) { super(message); }
+  code: string;
+  hint?: string;
+  constructor(code: string, message: string, hint?: string) { super(message); this.code = code; this.hint = hint; }
 }
