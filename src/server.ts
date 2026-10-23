@@ -91,7 +91,7 @@ export function createServer(version = "0.0.1") {
 
   server.registerTool("tt_draw", {
     title: "Draw",
-    description: "Apply a batch of ops as one undo step and return the grid of the frame touched. Ops: grid, pixel, line, rect, ellipse, flood, outline, shift, flip, replace, copy, clear, addLayer, removeLayer, addFrame, removeFrame, duration, tag, untag, slice, unslice, colour, palette.",
+    description: "Apply a batch of ops as one undo step and return the grid of the frame touched. Ops: grid, pixel, line, rect, ellipse, diamond (2:1 isometric footprint), flood, outline, shift, flip, replace, copy, clear, addLayer, removeLayer, addFrame, removeFrame, duration, tag, untag, slice, unslice, colour, palette.",
     inputSchema: { doc: docArg, ops: z.array(z.record(z.string(), z.unknown())).min(1).describe("each {op: name, ...fields}; layer by name and frame by index are optional on pixel ops"), show: z.number().int().min(0).optional().describe("frame to return; default the last frame an op named") },
   }, run(async (a: { doc?: string; ops: Record<string, unknown>[]; show?: number }) => {
     const e = get(a.doc);

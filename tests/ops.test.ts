@@ -28,6 +28,15 @@ test("ellipse outline and fill", () => {
   assert.equal(grid(e), "..000..\n.00000.\n0000000\n.00000.\n..000..");
 });
 
+test("diamond is a 2:1 isometric footprint", () => {
+  const e = Editor.create("t", 8, 4);
+  e.batch([{ op: "colour", hex: "#ffffff" }, { op: "diamond", x: 0, y: 0, w: 8, c: 1 }]);
+  assert.equal(grid(e), "...00...\n.00..00.\n.00..00.\n...00...");
+  e.batch([{ op: "diamond", x: 0, y: 0, w: 8, c: 1, fill: true }]);
+  assert.equal(grid(e), "...00...\n.000000.\n.000000.\n...00...");
+  assert.throws(() => e.batch([{ op: "diamond", x: 0, y: 0, w: 6, c: 1 }]), (err: unknown) => err instanceof TentenError && err.code === "BAD_DIAMOND");
+});
+
 test("outline, flip, shift, replace", () => {
   const e = fresh();
   e.batch([{ op: "pixel", x: 2, y: 1, c: 2 }, { op: "outline", c: 1 }]);

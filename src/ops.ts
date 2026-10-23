@@ -11,6 +11,7 @@ export type Op =
   | ({ op: "rect"; x: number; y: number; w: number; h: number; c: number; fill?: boolean } & Target)
   | ({ op: "ellipse"; x: number; y: number; w: number; h: number; c: number; fill?: boolean } & Target)
   | ({ op: "flood"; x: number; y: number; c: number } & Target)
+  | ({ op: "diamond"; x: number; y: number; w: number; c: number; fill?: boolean } & Target)
   | ({ op: "grid"; rows: string | string[]; x?: number; y?: number } & Target)
   | ({ op: "clear" } & Target)
   | ({ op: "shift"; dx: number; dy: number; wrap?: boolean } & Target)
@@ -74,6 +75,19 @@ function ellipse(d: Doc, px: Uint8Array, x: number, y: number, w: number, h: num
   while (y0 - y1 <= b) { span(x0 - 1, x1 + 1, y0++); span(x0 - 1, x1 + 1, y1--); }
 }
 
+// The 2:1 isometric tile footprint: a diamond w wide and w/2 tall whose edges step two pixels across for one down,
+// the line pixel artists draw for iso floors, roads and building bases. w must be a multiple of 4 for clean corners.
+function diamond(d: Doc, px: Uint8Array, x: number, y: number, w: number, c: number, fill: boolean) {
+  if (w < 4 || w % 4) throw new TentenError("BAD_DIAMOND", `diamond width ${w} is not a multiple of 4`, "use 8, 16, 32, 64 for a 2:1 isometric tile");
+  const h = w / 2, half = w / 2;
+  for (let r = 0; r < h; r++) {
+    const step = r < h / 2 ? r : h - 1 - r;
+    const x0 = x + half - 1 - step * 2, x1 = x + half + step * 2;
+    if (fill) for (let i = x0; i <= x1; i++) put(d, px, i, y + r, c);
+    else { put(d, px, x0, y + r, c); put(d, px, x0 + 1, y + r, c); put(d, px, x1 - 1, y + r, c); put(d, px, x1, y + r, c); }
+  }
+}
+
 function flood(d: Doc, px: Uint8Array, x: number, y: number, c: number) {
   if (!inBounds(d, x, y)) return;
   const from = px[y * d.width + x];
@@ -104,6 +118,7 @@ export function apply(d: Doc, o: Op): void {
     }
     case "ellipse": { checkIndex(d, o.c); ellipse(d, target(d, o).cel.pixels, o.x, o.y, o.w, o.h, o.c, !!o.fill); return; }
     case "flood": { checkIndex(d, o.c); flood(d, target(d, o).cel.pixels, o.x, o.y, o.c); return; }
+    case "diamond": { checkIndex(d, o.c); diamond(d, target(d, o).cel.pixels, o.x, o.y, o.w, o.c, !!o.fill); return; }
     case "grid": {
       const { cel } = target(d, o);
       const rows = Array.isArray(o.rows) ? o.rows : o.rows.split(/\r?\n/);
