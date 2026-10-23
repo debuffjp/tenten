@@ -31,6 +31,11 @@ export interface Sheet {
 
 // Pack frames at their full size, no trimming, so frame i is at a predictable cell. Grid picks the squarest column count.
 export function sheet(d: Doc, layout: SheetLayout = "horizontal", scale = 1, padding = 0): Sheet {
+  const { data, ...r } = sheetRgba(d, layout, scale, padding);
+  return { ...r, png: encode({ width: r.width, height: r.height, data, channels: 4, depth: 8 }) };
+}
+
+function sheetRgba(d: Doc, layout: SheetLayout, scale: number, padding: number): Omit<Sheet, "png"> & { data: Uint8Array } {
   const n = d.frames.length;
   const cols = layout === "horizontal" ? n : layout === "vertical" ? 1 : Math.ceil(Math.sqrt(n));
   const rows = Math.ceil(n / cols);
@@ -44,7 +49,7 @@ export function sheet(d: Doc, layout: SheetLayout = "horizontal", scale = 1, pad
     for (let y = 0; y < fh; y++) data.set(img.data.subarray(y * fw * 4, (y + 1) * fw * 4), ((cy + y) * width + cx) * 4);
     frames.push({ index: i, x: cx, y: cy, durationMs: f.durationMs });
   });
-  return { png: encode({ width, height, data, channels: 4, depth: 8 }), width, height, frames, columns: cols };
+  return { data, width, height, frames, columns: cols };
 }
 
 // Aseprite's JSON "hash" export, the shape `this.load.aseprite` in Phaser and Pixi's spritesheet parser accept.
@@ -63,8 +68,25 @@ export function asepriteJson(d: Doc, s: Sheet, imageName: string, scale = 1) {
   };
 }
 
-// A zoomed preview of every frame in a row, for a human or a model to look at.
+// A zoomed preview of every frame in a row with its index under it, for a human or a model to look at.
+const DIGITS = ["111101101101111", "010110010010111", "111001111100111", "111001111001111", "101101111001001", "111100111001111", "111100111101111", "111001001001001", "111101111101111", "111101111001111"];
+
 export function previewPng(d: Doc, scale = 8): Uint8Array {
   if (scale < 1) throw new TentenError("BAD_SCALE", "scale must be at least 1");
-  return sheet(d, "horizontal", scale, scale).png;
+  const s = sheetRgba(d, "horizontal", scale, scale);
+  const z = Math.max(1, Math.floor(scale / 4));
+  const width = s.width, height = s.height + 7 * z;
+  const data = new Uint8Array(width * height * 4);
+  data.set(s.data);
+  const put = (x: number, y: number) => { if (x < width) data.set([128, 128, 128, 255], ((s.height + z + y) * width + x) * 4); };
+  for (const f of s.frames) {
+    const text = String(f.index);
+    for (let i = 0; i < text.length; i++) {
+      const glyph = DIGITS[Number(text[i])];
+      for (let gy = 0; gy < 5; gy++) for (let gx = 0; gx < 3; gx++) if (glyph[gy * 3 + gx] === "1") {
+        for (let dy = 0; dy < z; dy++) for (let dx = 0; dx < z; dx++) put(f.x + (i * 4 + gx) * z + dx, gy * z + dy);
+      }
+    }
+  }
+  return encode({ width, height, data, channels: 4, depth: 8 });
 }

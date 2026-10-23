@@ -43,3 +43,24 @@ export function fromGrid(text: string | string[], width: number, height: number)
   });
   return out;
 }
+
+export interface GridDiff { changed: number; cells: { x: number; y: number; from: number; to: number }[]; grid: string }
+
+// Compare two flat index buffers of the same size. The grid shows the new index where a pixel changed and "-" elsewhere.
+export function diffPixels(a: Uint8Array, b: Uint8Array, width: number, height: number, maxCells = 64): GridDiff {
+  const cells: GridDiff["cells"] = [];
+  let changed = 0;
+  const rows: string[] = [];
+  for (let y = 0; y < height; y++) {
+    let row = "";
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (a[i] === b[i]) { row += "-"; continue; }
+      changed++;
+      if (cells.length < maxCells) cells.push({ x, y, from: a[i], to: b[i] });
+      row += indexToChar(b[i]);
+    }
+    rows.push(row);
+  }
+  return { changed, cells, grid: rows.join("\n") };
+}

@@ -1,14 +1,14 @@
-// The MCP server: eleven tools over a registry of open documents. Every result carries structuredContent plus the
+// The MCP server: twelve tools over a registry of open documents. Every result carries structuredContent plus the
 // same JSON as text, and every edit returns the text grid of the frame it touched so the model sees what it did.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { decodeAseprite, encodeAseprite } from "./aseprite.ts";
-import { TentenError, type Doc } from "./doc.ts";
+import { TentenError, flatten, type Doc } from "./doc.ts";
 import { Editor } from "./editor.ts";
 import { load, serialize } from "./format.ts";
-import { frameGrid } from "./grid.ts";
+import { diffPixels, frameGrid, indexToChar } from "./grid.ts";
 import type { Op } from "./ops.ts";
 import { PALETTES, ramp, hexToRgba, rgbaToHex } from "./palette.ts";
 import { startPreview, type Preview } from "./preview.ts";
@@ -16,11 +16,11 @@ import { asepriteJson, framePng, previewPng, sheet, type SheetLayout } from "./r
 
 const INSTRUCTIONS = `tenten draws indexed pixel art and animations headlessly. Documents are sprites: a palette (index 0 is transparent), layers, frames with durations, tags, slices.
 1. tt_new makes a document (name, size, a named palette or hex colours); tt_open loads a .tt or .aseprite file. Several can be open; every tool takes doc (default: the newest).
-2. Read before you draw: tt_describe gives size, palette with indices, layers, frames, tags, slices and the text grid of a frame. In grids "." is transparent and 0-9a-zA-Z are palette indices 1-61.
+2. Read before you draw: tt_describe gives size, palette, layers, frames, tags, slices and the text grid of a frame. Each palette entry is "index=colour (grid char)": "." is transparent and 0-9a-zA-Z stand for palette indices 1-61, so index 1 is drawn as "0". Use the char in brackets when writing grids.
 3. Draw with tt_draw: a batch of ops applied in order as one undo step. The cheapest way to draw a sprite is one grid op with rows of text; use pixel, line, rect, ellipse, diamond (2:1 isometric footprint), flood, outline, shift, flip, replace, copy for edits. The result is the grid of the frame you touched (frame 0 unless an op names another). A failed op rolls the whole batch back.
 4. Frames and animation are ops too: addFrame (copies the previous frame unless copy:false), removeFrame, duration, tag. Layers: addLayer, removeLayer; ops take layer by name (default: the top layer) and frame by index.
 5. Palette: palette (replace all), colour (append or set an index). tt_palettes lists the built-in palettes and makes shading ramps.
-6. tt_render returns a frame as text, or as a zoomed PNG image (view: "png") when you need to judge the look; tt_export writes PNGs, a sheet and Aseprite-style JSON that Phaser and Pixi load (and .aseprite with aseprite: true). tt_save writes .tt or .aseprite by extension. tt_undo undoes batches.
+6. tt_render returns a frame as text, or every frame as a zoomed PNG image (view: "png") with its index under it, when you need to judge the look. tt_diff lists the pixels that differ between two frames or two documents, for round-trip and regression checks; tt_export writes PNGs, a sheet and Aseprite-style JSON that Phaser and Pixi load (and .aseprite with aseprite: true). tt_save writes .tt or .aseprite by extension. tt_undo undoes batches.
 7. tt_preview opens a small window for the human that shows every open document and plays its animations, updating on every change. tt_watch re-exports a document to a directory after every change, so a dev server watching that directory hot-reloads the art.`;
 
 type Content = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
@@ -79,7 +79,7 @@ export function createServer(version = "0.0.1") {
   };
   const describe = (d: Doc, frame = 0) => ({
     name: d.name, width: d.width, height: d.height,
-    palette: d.palette.map((c, i) => `${i}=${i === 0 ? "transparent" : rgbaToHex(c)}`),
+    palette: d.palette.map((c, i) => `${i}=${i === 0 ? "transparent" : rgbaToHex(c)}${i < 62 ? ` (${indexToChar(i)})` : ""}`),
     layers: d.layers.map((l) => l.visible ? l.name : `${l.name} (hidden)`),
     frames: d.frames.map((f) => f.durationMs), tags: d.tags, slices: d.slices,
     frame, grid: frameGrid(d, d.frames[frame] ?? d.frames[0]),
@@ -106,7 +106,7 @@ export function createServer(version = "0.0.1") {
 
   server.registerTool("tt_open", {
     title: "Open a file",
-    description: "Load a .tt or .aseprite file; tt_save writes it back to the same path.",
+    description: "Load a .tt or .aseprite file; tt_save writes it back to the same path. An RGB or grayscale .aseprite opens with a palette of only the colours it uses, so saving it back writes a smaller indexed file.",
     inputSchema: { path: z.string() },
   }, run(async (a: { path: string }) => { const en = adopt(new Editor(await loadAny(a.path), resolve(a.path))); await changed(en); return ok(describe(en.e.doc)); }));
 
@@ -154,7 +154,7 @@ export function createServer(version = "0.0.1") {
 
   server.registerTool("tt_render", {
     title: "Render",
-    description: "A frame as a text grid, or every frame as one zoomed PNG image (view: png) to judge the look.",
+    description: "A frame as a text grid, or every frame as one zoomed PNG image (view: png) with its index drawn under it, to judge the look.",
     inputSchema: { doc: docArg, frame: z.number().int().min(0).optional(), view: z.enum(["text", "png"]).optional(), scale: z.number().int().min(1).max(32).optional().describe("png zoom, default 8") },
   }, run(async (a: { doc?: string; frame?: number; view?: "text" | "png"; scale?: number }) => {
     const e = get(a.doc).e;
@@ -164,6 +164,26 @@ export function createServer(version = "0.0.1") {
     }
     const frames = a.frame === undefined ? e.doc.frames : [e.doc.frames[a.frame]];
     return ok({ grids: frames.map((f) => frameGrid(e.doc, f)) });
+  }));
+
+  const side = z.object({ doc: docArg, frame: z.number().int().min(0).optional() }).optional();
+  server.registerTool("tt_diff", {
+    title: "Diff",
+    description: "The pixels that differ between two frames, of one document or two. With no frames given, every frame of a is compared with the same frame of b. The grid shows the new index where a pixel changed and - elsewhere.",
+    inputSchema: { a: side.describe("first side; default the newest document"), b: side.describe("second side; default the same document as a"), maxCells: z.number().int().min(0).optional().describe("changed cells to list per frame, default 64") },
+  }, run(async (a: { a?: { doc?: string; frame?: number }; b?: { doc?: string; frame?: number }; maxCells?: number }) => {
+    const da = get(a.a?.doc).e.doc, db = get(a.b?.doc ?? a.a?.doc).e.doc;
+    if (da.width !== db.width || da.height !== db.height) throw new TentenError("SIZE_MISMATCH", `${da.name} is ${da.width}x${da.height} but ${db.name} is ${db.width}x${db.height}`);
+    const pairs = a.a?.frame !== undefined || a.b?.frame !== undefined
+      ? [[a.a?.frame ?? 0, a.b?.frame ?? a.a?.frame ?? 0]]
+      : Array.from({ length: Math.max(da.frames.length, db.frames.length) }, (_, i) => [i, i]);
+    const frames = pairs.map(([fa, fb]) => {
+      const A = da.frames[fa], B = db.frames[fb];
+      if (!A || !B) return { a: fa, b: fb, missing: !A ? da.name : db.name };
+      return { a: fa, b: fb, ...diffPixels(flatten(da, A), flatten(db, B), da.width, da.height, a.maxCells) };
+    });
+    const paletteSame = da.palette.length === db.palette.length && da.palette.every((c, i) => c.every((v, k) => v === db.palette[i][k]));
+    return ok({ a: da.name, b: db.name, same: paletteSame && frames.every((f) => "changed" in f && f.changed === 0), paletteSame, frames });
   }));
 
   server.registerTool("tt_export", {

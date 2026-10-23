@@ -17,11 +17,11 @@ test("an agent session over stdio", async () => {
   const call = async (name: string, args: Record<string, unknown>) => (await client.callTool({ name, arguments: args })) as Result;
   try {
     const tools = (await client.listTools()).tools.map((t) => t.name).sort();
-    assert.deepEqual(tools, ["tt_describe", "tt_draw", "tt_export", "tt_new", "tt_open", "tt_palettes", "tt_preview", "tt_render", "tt_save", "tt_undo", "tt_watch"]);
+    assert.deepEqual(tools, ["tt_describe", "tt_diff", "tt_draw", "tt_export", "tt_new", "tt_open", "tt_palettes", "tt_preview", "tt_render", "tt_save", "tt_undo", "tt_watch"]);
 
     const made = await call("tt_new", { name: "coin", width: 6, height: 6, palette: ["#ffd700", "#b8860b", "#000000"] });
     assert.equal(made.isError, undefined, JSON.stringify(made.content));
-    assert.deepEqual(made.structuredContent?.palette, ["0=transparent", "1=#ffd700", "2=#b8860b", "3=#000000"]);
+    assert.deepEqual(made.structuredContent?.palette, ["0=transparent (.)", "1=#ffd700 (0)", "2=#b8860b (1)", "3=#000000 (2)"]);
 
     const drawn = await call("tt_draw", { ops: [
       { op: "grid", rows: [".0000.", "000010", "000010", "000010", "000010", ".0000."] },
@@ -74,6 +74,18 @@ test("an agent session over stdio", async () => {
     const ase = await call("tt_open", { path: join(watchDir, "coin.aseprite") });
     assert.equal(ase.isError, undefined, JSON.stringify(ase.content));
     assert.equal(ase.structuredContent?.grid, "000002\n000010\n000010\n000010\n000010\n200002");
+
+    const same = await call("tt_diff", { a: { doc: "coin" }, b: { doc: "coin" } });
+    assert.equal(same.structuredContent?.same, true, JSON.stringify(same.content));
+    const diff = await call("tt_diff", { a: { frame: 0 }, b: { frame: 1 } });
+    const f0 = (diff.structuredContent?.frames as { changed: number; grid: string }[])[0];
+    assert.equal(diff.structuredContent?.same, false);
+    const [g0, g1] = (await call("tt_render", {})).structuredContent?.grids as string[];
+    const expected = [...g0].filter((ch, i) => ch !== g1[i]).length;
+    assert.equal(f0.changed, expected);
+    assert.equal(f0.grid.replace(/[-\n]/g, "").length, expected, "the grid marks exactly the changed cells");
+    const mismatch = await call("tt_diff", { a: { frame: 0 }, b: { frame: 5 } });
+    assert.equal((mismatch.structuredContent?.frames as { missing?: string }[])[0].missing, "coin");
 
     const pv = await call("tt_preview", { open: false });
     const url = String(pv.structuredContent?.url);
