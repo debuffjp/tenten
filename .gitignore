@@ -1,4 +1,5 @@
 node_modules/
 .tenten/
+.claude/worktrees/
 *.log
 tmp/
