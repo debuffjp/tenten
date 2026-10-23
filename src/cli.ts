@@ -1,22 +1,24 @@
-// tenten <command>: show a .tt as text, export sheets, or describe. The MCP server is `tenten-mcp`.
-import { mkdir, writeFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+// tenten <command>: show a sprite as text, export sheets, convert between .tt and .aseprite. The MCP server is `tenten-mcp`.
+import { writeFile } from "node:fs/promises";
+import { basename, extname } from "node:path";
 import { parseArgs } from "node:util";
-import { load } from "./format.ts";
 import { frameGrid } from "./grid.ts";
 import { rgbaToHex } from "./palette.ts";
-import { asepriteJson, framePng, previewPng, sheet, type SheetLayout } from "./render.ts";
+import { previewPng, type SheetLayout } from "./render.ts";
+import { exportDoc, loadAny, saveAny } from "./server.ts";
 
-const USAGE = `tenten show <file.tt> [--frame n]        print a frame as a text grid (all frames by default)
-tenten export <file.tt> [--out dir] [--layout horizontal|vertical|grid] [--scale n] [--padding n] [--frames] [--debuff]
-tenten preview <file.tt> [--out file.png] [--scale n]   one zoomed PNG of every frame
-tenten info <file.tt>                    palette, layers, frames, tags, slices`;
+const USAGE = `tenten show <file> [--frame n]           print a frame as a text grid (all frames by default)
+tenten info <file>                       palette, layers, frames, tags, slices
+tenten export <file> [--out dir] [--layout horizontal|vertical|grid] [--scale n] [--padding n] [--frames] [--debuff] [--aseprite]
+tenten preview <file> [--out file.png] [--scale n]   one zoomed PNG of every frame
+tenten convert <file> <out>              between .tt and .aseprite, by extension
+<file> is .tt or .aseprite`;
 
-const { values, positionals } = parseArgs({ allowPositionals: true, options: { frame: { type: "string" }, out: { type: "string" }, layout: { type: "string" }, scale: { type: "string" }, padding: { type: "string" }, frames: { type: "boolean" }, debuff: { type: "boolean" }, help: { type: "boolean", short: "h" } } });
-const [cmd, file] = positionals;
+const { values, positionals } = parseArgs({ allowPositionals: true, options: { frame: { type: "string" }, out: { type: "string" }, layout: { type: "string" }, scale: { type: "string" }, padding: { type: "string" }, frames: { type: "boolean" }, debuff: { type: "boolean" }, aseprite: { type: "boolean" }, help: { type: "boolean", short: "h" } } });
+const [cmd, file, target] = positionals;
 if (values.help || !cmd || !file) { console.log(USAGE); process.exit(cmd ? 0 : 1); }
 
-const d = await load(file);
+const d = await loadAny(file);
 const scale = Number(values.scale ?? 1);
 switch (cmd) {
   case "show": {
@@ -29,20 +31,20 @@ switch (cmd) {
     break;
   }
   case "export": {
-    const dir = values.out ?? ".";
-    await mkdir(dir, { recursive: true });
-    const s = sheet(d, (values.layout as SheetLayout) ?? "horizontal", scale, Number(values.padding ?? 0));
-    await writeFile(join(dir, `${d.name}.png`), s.png);
-    await writeFile(join(dir, `${d.name}.json`), JSON.stringify(asepriteJson(d, s, `${d.name}.png`, scale), null, 2));
-    if (values.frames) for (const [i, f] of d.frames.entries()) await writeFile(join(dir, `${d.name}-${i}.png`), framePng(d, f, scale));
-    if (values.debuff) await writeFile(join(dir, `${d.name}@${d.width * scale}x${d.height * scale}.png`), sheet(d, "horizontal", scale, 0).png);
-    console.log(`wrote ${d.name}.png (${s.width}x${s.height}, ${s.frames.length} frames) and ${d.name}.json to ${dir}`);
+    const r = await exportDoc(d, { dir: values.out ?? ".", layout: values.layout as SheetLayout | undefined, scale, padding: Number(values.padding ?? 0), frames: values.frames, debuff: values.debuff, aseprite: values.aseprite });
+    console.log(`wrote ${r.written.map((p) => basename(p)).join(", ")} (${r.sheet.width}x${r.sheet.height}, ${r.sheet.frames} frames) to ${values.out ?? "."}`);
     break;
   }
   case "preview": {
-    const out = values.out ?? `${basename(file, ".tt")}-preview.png`;
+    const out = values.out ?? `${basename(file, extname(file))}-preview.png`;
     await writeFile(out, previewPng(d, Number(values.scale ?? 8)));
     console.log(`wrote ${out}`);
+    break;
+  }
+  case "convert": {
+    if (!target) { console.log(USAGE); process.exit(1); }
+    await saveAny(d, target);
+    console.log(`wrote ${target}`);
     break;
   }
   default: console.log(USAGE); process.exit(1);

@@ -17,7 +17,7 @@ test("an agent session over stdio", async () => {
   const call = async (name: string, args: Record<string, unknown>) => (await client.callTool({ name, arguments: args })) as Result;
   try {
     const tools = (await client.listTools()).tools.map((t) => t.name).sort();
-    assert.deepEqual(tools, ["tt_describe", "tt_draw", "tt_export", "tt_new", "tt_open", "tt_palettes", "tt_render", "tt_save", "tt_undo"]);
+    assert.deepEqual(tools, ["tt_describe", "tt_draw", "tt_export", "tt_new", "tt_open", "tt_palettes", "tt_preview", "tt_render", "tt_save", "tt_undo", "tt_watch"]);
 
     const made = await call("tt_new", { name: "coin", width: 6, height: 6, palette: ["#ffd700", "#b8860b", "#000000"] });
     assert.equal(made.isError, undefined, JSON.stringify(made.content));
@@ -64,6 +64,25 @@ test("an agent session over stdio", async () => {
 
     const reopened = await call("tt_open", { path: join(dir, "coin.tt") });
     assert.equal(reopened.structuredContent?.frames && (reopened.structuredContent.frames as number[]).length, 2);
+
+    const watchDir = join(dir, "watch");
+    const watching = await call("tt_watch", { dir: watchDir, aseprite: true });
+    assert.equal(watching.structuredContent?.watching, true);
+    await call("tt_draw", { ops: [{ op: "pixel", x: 0, y: 0, c: 1 }] });
+    const watched = decode(await readFile(join(watchDir, "coin.png")));
+    assert.deepEqual([...watched.data.subarray(0, 4)], [255, 215, 0, 255], "the watch export reflects the last draw");
+    const ase = await call("tt_open", { path: join(watchDir, "coin.aseprite") });
+    assert.equal(ase.isError, undefined, JSON.stringify(ase.content));
+    assert.equal(ase.structuredContent?.grid, "000002\n000010\n000010\n000010\n000010\n200002");
+
+    const pv = await call("tt_preview", { open: false });
+    const url = String(pv.structuredContent?.url);
+    assert.match(url, /^http:\/\/127\.0\.0\.1:\d+\/$/);
+    const page = await (await fetch(url)).text();
+    assert.match(page, /<title>tenten<\/title>/);
+    const events = await fetch(`${url}events`);
+    const chunk = new TextDecoder().decode((await events.body!.getReader().read()).value);
+    assert.match(chunk, /"name":"coin"/);
   } finally {
     await client.close();
     await rm(dir, { recursive: true, force: true });

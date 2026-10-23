@@ -5,3 +5,5 @@ export * from "./palette.ts";
 export * from "./editor.ts";
 export * from "./render.ts";
 export * from "./format.ts";
+export * from "./aseprite.ts";
+export * from "./preview.ts";

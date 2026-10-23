@@ -10,7 +10,7 @@ Inspired by Aseprite, not a clone of it. The `.tt` file is JSON with cels stored
 { "mcpServers": { "tenten": { "command": "npx", "args": ["-y", "tenten", "tenten-mcp"] } } }
 ```
 
-Or from a checkout: `node bin/tenten-mcp.js`. Nine tools: `tt_new`, `tt_open`, `tt_save`, `tt_describe`, `tt_draw`, `tt_undo`, `tt_render`, `tt_export`, `tt_palettes`. A sprite is usually one `tt_draw` call with a `grid` op:
+Or from a checkout: `node bin/tenten-mcp.js`. Eleven tools: `tt_new`, `tt_open`, `tt_save`, `tt_describe`, `tt_draw`, `tt_undo`, `tt_render`, `tt_export`, `tt_watch`, `tt_preview`, `tt_palettes`. A sprite is usually one `tt_draw` call with a `grid` op:
 
 ```json
 { "ops": [
@@ -23,14 +23,23 @@ Or from a checkout: `node bin/tenten-mcp.js`. Nine tools: `tt_new`, `tt_open`, `
 
 In a grid `.` is transparent and `0-9a-zA-Z` are palette indices 1 to 61.
 
+`tt_preview` opens a small page for the human that shows every open document zoomed and plays its animations, updated on every change. `tt_watch` re-exports a document to a directory after every change, so a dev server watching that directory (debuff, Vite) reloads the art as the agent draws. `tt_open` and `tt_save` take `.aseprite` as well as `.tt`.
+
+## .aseprite
+
+Reads RGBA, grayscale and indexed files with raw, compressed or linked cels at any offset, and writes indexed files with a palette, layers, tags and slices. The tests render Overbuffed's Aseprite files to the PNGs Aseprite exported from them, pixel for pixel, and, when Aseprite is installed, have the real binary open a tenten-written file and export the same sheet. The codec is written from the published file spec, not from Aseprite's source.
+
 ## CLI
 
 ```
-tenten show <file.tt> [--frame n]
-tenten info <file.tt>
-tenten export <file.tt> [--out dir] [--layout horizontal|vertical|grid] [--scale n] [--padding n] [--frames] [--debuff]
-tenten preview <file.tt> [--out file.png] [--scale n]
+tenten show <file> [--frame n]
+tenten info <file>
+tenten export <file> [--out dir] [--layout horizontal|vertical|grid] [--scale n] [--padding n] [--frames] [--debuff] [--aseprite]
+tenten preview <file> [--out file.png] [--scale n]
+tenten convert <file> <out>
 ```
+
+`<file>` is `.tt` or `.aseprite`.
 
 ## Library
 
@@ -45,4 +54,4 @@ Ops: `grid`, `pixel`, `line`, `rect`, `ellipse`, `diamond` (a 2:1 isometric foot
 
 ## Not yet
 
-`.aseprite` import and export, a preview window, hot reload into a running game, tilemap layers, brushes. Node 24 runs the TypeScript source directly; `npm run check` typechecks and runs the tests.
+Tilemap layers and tilemap cels in `.aseprite`, brushes, in-place texture swapping without a reload (today `tt_watch` rewrites files and the dev server reloads). Node 24 runs the TypeScript source directly; `npm run check` typechecks and runs the tests.
