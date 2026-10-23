@@ -4,13 +4,15 @@ A headless pixel-art and animation tool for coding agents. Sprites are indexed (
 
 Inspired by Aseprite, not a clone of it. The `.tt` file is JSON with cels stored as text grids, so it reads with `cat` and diffs in git. Exports write PNG sheets and Aseprite-style JSON that Phaser's `load.aseprite` and Pixi's spritesheet parser accept, and the `name@WxH.png` strips debuff's asset compiler reads.
 
+Part of [debuff](https://github.com/debuffjp/debuff), the toolkit for 2D browser games. Projects made with `npm create debuff` list tenten in their `.mcp.json`, and the `tenten()` plugin in `@debuffjp/cli` turns `.tt` files in `assets/` into sprite sheets, fetching tenten with npx when it is not installed.
+
 ## Use it from an agent
 
 ```json
 { "mcpServers": { "tenten": { "command": "npx", "args": ["-y", "tenten", "tenten-mcp"] } } }
 ```
 
-Or from a checkout: `node bin/tenten-mcp.js`. Eleven tools: `tt_new`, `tt_open`, `tt_save`, `tt_describe`, `tt_draw`, `tt_undo`, `tt_render`, `tt_export`, `tt_watch`, `tt_preview`, `tt_palettes`. A sprite is usually one `tt_draw` call with a `grid` op:
+Or from a checkout: `node bin/tenten-mcp.js`. Twelve tools: `tt_new`, `tt_open`, `tt_save`, `tt_describe`, `tt_draw`, `tt_undo`, `tt_render`, `tt_diff`, `tt_export`, `tt_watch`, `tt_preview`, `tt_palettes`. A sprite is usually one `tt_draw` call with a `grid` op:
 
 ```json
 { "ops": [
@@ -21,7 +23,7 @@ Or from a checkout: `node bin/tenten-mcp.js`. Eleven tools: `tt_new`, `tt_open`,
 ] }
 ```
 
-In a grid `.` is transparent and `0-9a-zA-Z` are palette indices 1 to 61.
+In a grid `.` is transparent and `0-9a-zA-Z` are palette indices 1 to 61, so index 1 is drawn as `0`. `tt_describe` lists each palette entry with its grid character, as `1=#ffd700 (0)`. `tt_render` with `view: "png"` draws every frame zoomed with its index under it. `tt_diff` lists the pixels that differ between two frames or two documents.
 
 `tt_preview` opens a small page for the human that shows every open document zoomed and plays its animations, updated on every change. `tt_watch` re-exports a document to a directory after every change, so a dev server watching that directory (debuff, Vite) reloads the art as the agent draws. `tt_open` and `tt_save` take `.aseprite` as well as `.tt`.
 

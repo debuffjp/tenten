@@ -2,7 +2,7 @@
 import { writeFile } from "node:fs/promises";
 import { basename, extname } from "node:path";
 import { parseArgs } from "node:util";
-import { frameGrid } from "./grid.ts";
+import { frameGrid, indexToChar } from "./grid.ts";
 import { rgbaToHex } from "./palette.ts";
 import { previewPng, type SheetLayout } from "./render.ts";
 import { exportDoc, loadAny, saveAny } from "./server.ts";
@@ -27,7 +27,7 @@ switch (cmd) {
     break;
   }
   case "info": {
-    console.log(JSON.stringify({ name: d.name, size: [d.width, d.height], palette: d.palette.map((c, i) => `${i}=${i ? rgbaToHex(c) : "transparent"}`), layers: d.layers.map((l) => l.name), frames: d.frames.map((f) => f.durationMs), tags: d.tags, slices: d.slices }, null, 2));
+    console.log(JSON.stringify({ name: d.name, size: [d.width, d.height], palette: d.palette.map((c, i) => `${i}=${i ? rgbaToHex(c) : "transparent"}${i < 62 ? ` (${indexToChar(i)})` : ""}`), layers: d.layers.map((l) => l.name), frames: d.frames.map((f) => f.durationMs), tags: d.tags, slices: d.slices }, null, 2));
     break;
   }
   case "export": {

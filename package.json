@@ -2,6 +2,9 @@
   "name": "tenten",
   "version": "0.0.1",
   "description": "tenten: a headless pixel-art and animation tool for coding agents. Indexed sprites, frames, tags and slices over an MCP server and a CLI, with text renders in every result. Imports and exports .aseprite.",
+  "repository": { "type": "git", "url": "git+https://github.com/debuffjp/tenten.git" },
+  "homepage": "https://github.com/debuffjp/tenten",
+  "keywords": ["pixel-art", "sprites", "aseprite", "mcp", "debuff", "gamedev"],
   "type": "module",
   "license": "MIT",
   "bin": {
