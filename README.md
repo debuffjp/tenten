@@ -1,10 +1,10 @@
-<img src="docs/brand/icon.svg" alt="tenten" width="96">
+<img src="https://raw.githubusercontent.com/debuffjp/tenten/master/docs/brand/icon.svg" alt="tenten" width="96">
 
 # tenten
 
 A headless, scriptable pixel-art and animation tool. Draw sprites as text grids and ops over an MCP server, a CLI or a TypeScript API, and export sheets that Phaser, Pixi and debuff load. Sprites are indexed (a palette, index 0 transparent) with layers, frames, tags and slices. There is no editing GUI. Every edit returns the frame as a text grid, so a coding agent can drive it without a screen.
 
-Inspired by Aseprite, not a clone of it. The `.tt` file is JSON with cels stored as text grids, so it reads with `cat` and diffs in git. Exports write PNG sheets and Aseprite-style JSON that Phaser's `load.aseprite` and Pixi's spritesheet parser accept, and the `name@WxH.png` strips debuff's asset compiler reads.
+The point is that the whole sprite is text. A six-line grid is a sprite, a diff shows which pixels moved, and anything that can write a string can draw. Inspired by Aseprite, not a clone of it. The [`.tt` file](docs/format.md) is JSON with cels stored as text grids, so it reads with `cat` and diffs in git. Exports write PNG sheets and Aseprite-style JSON that Phaser's `load.aseprite` and Pixi's spritesheet parser accept, and the `name@WxH.png` strips debuff's asset compiler reads.
 
 Part of [debuff](https://github.com/debuffjp/debuff), the toolkit for 2D browser games. Projects made with `npm create debuff` list tenten in their `.mcp.json`, and the `tenten()` plugin in `@debuffjp/cli` turns `.tt` files in `assets/` into sprite sheets, fetching tenten with npx when it is not installed.
 
@@ -25,9 +25,14 @@ Or from a checkout: `node bin/tenten-mcp.js`. Twelve tools: `tt_new`, `tt_open`,
 ] }
 ```
 
+<img src="https://raw.githubusercontent.com/debuffjp/tenten/master/docs/slime.png" alt="The slime from the grid above at 12x: two frames, the second one pixel lower" width="204" height="88">
+
 In a grid `.` is transparent and `0-9a-zA-Z` are palette indices 1 to 61, so index 1 is drawn as `0`. `tt_describe` lists each palette entry with its grid character, as `1=#ffd700 (0)`. `tt_render` with `view: "png"` draws every frame zoomed with its index under it. `tt_diff` lists the pixels that differ between two frames or two documents.
 
-`tt_preview` opens a small page for the human that shows every open document zoomed and plays its animations, updated on every change. `tt_watch` re-exports a document to a directory after every change, so a dev server watching that directory (debuff, Vite) reloads the art as the agent draws. `tt_open` and `tt_save` take `.aseprite` as well as `.tt`.
+`tt_preview` opens a small page for the human that shows every open document zoomed and plays its animations, updated on every change:
+
+<img src="https://raw.githubusercontent.com/debuffjp/tenten/master/docs/preview.png" alt="The preview page: the slime's frames and a playing copy, and buff from an Aseprite file with three boil frames" width="600">
+ `tt_watch` re-exports a document to a directory after every change, so a dev server watching that directory (debuff, Vite) reloads the art as the agent draws. `tt_open` and `tt_save` take `.aseprite` as well as `.tt`.
 
 ## .aseprite
 
