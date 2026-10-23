@@ -11,7 +11,7 @@ Part of [debuff](https://github.com/debuffjp/debuff), the toolkit for 2D browser
 ## Use it from an agent
 
 ```json
-{ "mcpServers": { "tenten": { "command": "npx", "args": ["-y", "tenten", "tenten-mcp"] } } }
+{ "mcpServers": { "tenten": { "command": "npx", "args": ["-y", "-p", "@debuffjp/tenten", "tenten-mcp"] } } }
 ```
 
 Or from a checkout: `node bin/tenten-mcp.js`. Twelve tools: `tt_new`, `tt_open`, `tt_save`, `tt_describe`, `tt_draw`, `tt_undo`, `tt_render`, `tt_diff`, `tt_export`, `tt_watch`, `tt_preview`, `tt_palettes`. A sprite is usually one `tt_draw` call with a `grid` op:
@@ -48,7 +48,7 @@ tenten convert <file> <out>
 ## Library
 
 ```ts
-import { Editor, save, sheet } from "tenten";
+import { Editor, save, sheet } from "@debuffjp/tenten";
 const e = Editor.create("coin", 8, 8);
 e.batch([{ op: "palette", colours: ["#ffd700", "#b8860b"] }, { op: "ellipse", x: 0, y: 0, w: 8, h: 8, c: 1, fill: true }]);
 await save(e.doc, "coin.tt");
