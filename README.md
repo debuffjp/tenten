@@ -6,7 +6,7 @@ A headless, scriptable pixel-art and animation tool. Draw sprites as text grids 
 
 The point is that the whole sprite is text. A six-line grid is a sprite, a diff shows which pixels moved, and anything that can write a string can draw. Inspired by Aseprite, not a clone of it. The [`.tt` file](docs/format.md) is JSON with cels stored as text grids, so it reads with `cat` and diffs in git. Exports write PNG sheets and Aseprite-style JSON that Phaser's `load.aseprite` and Pixi's spritesheet parser accept, and the `name@WxH.png` strips debuff's asset compiler reads.
 
-Part of [debuff](https://github.com/debuffjp/debuff), the toolkit for 2D browser games. Projects made with `npm create debuff` list tenten in their `.mcp.json`, and the `tenten()` plugin in `@debuffjp/cli` turns `.tt` files in `assets/` into sprite sheets, fetching tenten with npx when it is not installed.
+Part of [debuff](https://github.com/debuffjp/debuff), the framework for 2D browser games. Projects made with `npm create debuff` list tenten in their `.mcp.json`, and the `tenten()` plugin in `@debuffjp/cli` turns `.tt` files in `assets/` into sprite sheets, fetching tenten with npx when it is not installed.
 
 ## MCP server
 
